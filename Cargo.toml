@@ -1,0 +1,19 @@
+[package]
+name = "gcd"
+version = "0.1.0"
+description = "Efficient implementations of gcd algorithms"
+authors = ["Hugo Sanz González <hugo@hgsg.me>"]
+license = "MIT"
+homepage = "https://github.com/hsang/gcd"
+repository = "https://github.com/hsang/gcd"
+keywords = ["gcd", "euclidean", "binary-gcd"]
+categories = ["algorithms", "mathematics"]
+readme = "README.md"
+edition = "2024"
+
+[dependencies]
+
+# Taken from https://docs.rs/rustdoc-katex-demo/latest/rustdoc_katex_demo/
+# To build locally, run `RUSTDOCFLAGS="--html-in-header misc/katex-header.html" cargo doc --no-deps`.
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "misc/katex-header.html"]
