@@ -256,6 +256,8 @@ pub fn harris(mut u: u64, mut v: u64) -> u64 {
     if v % 2 == 1 {
       v = u - v;
     }
+    // SAFETY: See the previous comment.
+    unsafe { core::hint::assert_unchecked(v > 0) };
     // At this point $u$ is odd and $v$ is even. If $k_v$ denotes the
     // dyadic valuation of $v$, then $\gcd(u,v)=2^{k_v}\gcd(u,v/2^{k_v})$.
     // Note that this step makes $v$ odd and preserves the inequality
