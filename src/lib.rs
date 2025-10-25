@@ -5,8 +5,9 @@
 //!
 //! The _greatest common divisor_ $\gcd(u,v)$ of two integers $u$ and $v$,
 //! not both zero, is the largest integer that evenly divides them both.
-//! (By convention we let $\gcd(0,0)=0$.)
-//! All the algorithms adopt the convention $\gcd(0,0)=0$.
+//! This definition does not apply when $u$ and $v$ are both zero, since
+//! every number divides zero; for convenience, all the algorithms adhere
+//! to the convention that $\gcd(0,0)=0$.
 #![cfg_attr(not(test), no_std)]
 
 /// Computes the greatest common divisor of $u$ and $v$ using the modern
@@ -189,17 +190,90 @@ pub fn binary_brent(mut u: u64, mut v: u64) -> u64 {
   u << k
 }
 
-/// Computes the greatest common divisor of $u$ and $v$ using an algorithm
-/// of V. C. Harris, a cross between [Euclid's algorithm](euclid) and the [binary algorithm](binary_stein),
-/// as described in Section 4.5.2 of _TAOCP_.
+/// Computes the greatest common divisor of $u$ and $v$ using a cross
+/// between [Euclid's algorithm](euclid) and the [binary gcd algorithm]
+/// proposed by V. C. Harris \[_The Fibonacci Quarterly_ **8** (1970),
+/// [102--103][harris]].
+///
+/// See Section 4.5.2 of _TAOCP_ for a short discussion of this method.
+///
+/// # Examples
+/// ```
+/// use gcd::harris;
+///
+/// assert_eq!(harris(0, 0), 0);
+/// assert_eq!(harris(0, 3), 3);
+/// assert_eq!(harris(1, 1), 1);
+/// assert_eq!(harris(1, 4), 1);
+/// assert_eq!(harris(45, 165), 15);
+/// assert_eq!(harris(6119, 2175), 29);
+/// assert_eq!(harris(69336, 82818), 1926);
+/// assert_eq!(harris(u64::MAX, u64::MAX - 1), 1);
+/// assert_eq!(harris(u64::MAX, u64::MAX), u64::MAX);
+///
+/// // Find the gcd of two signed integers.
+/// assert_eq!(harris(18, (-27i64).unsigned_abs()), 9);
+/// ```
+///
+/// [binary gcd algorithm]: binary_stein
+/// [harris]: https://www.fq.math.ca/Scanned/8-1/harris1.pdf
 #[must_use]
-pub const fn harris(mut u: u64, mut v: u64) -> u64 {
-  todo!()
+pub fn harris(mut u: u64, mut v: u64) -> u64 {
+  if u == 0 {
+    return v;
+  }
+  if v == 0 {
+    return u;
+  }
+  // Like the binary gcd algorithm, the main loop of this scheme assumes
+  // that $u$ and $v$ are both odd at the beginning of each iteration.
+  // Apply the familiar identity $\gcd(u,v)=2^k\gcd(u/2^{k_u},v/2^{k_v})$,
+  // where $k_u$ and $k_v$ are the dyadic valuations of $u$ and $v$,
+  // and $k=\min(k_u,k_v)$. After this step, $u$ and $v$ become odd.
+  let (k_u, k_v) = (u.trailing_zeros(), v.trailing_zeros());
+  u >>= k_u;
+  v >>= k_v;
+  let k = k_u.min(k_v);
+  // This scheme also requires that $0<v\le u$ upon entry to the main
+  // loop. Obviously $\gcd(u,v)=\gcd(v,u)$.
+  if u < v {
+    (u, v) = (v, u);
+  }
+  loop {
+    // The comment in `euclid` shows that $\gcd(u,v)=\gcd(v,u\bmod v)$,
+    // so we may replace $u$ by its remainder modulo $v$.
+    (u, v) = (v, u % v);
+    if v == 0 {
+      // Clearly $\gcd(u,0)=u$, and the answer is $u\cdot2^k$.
+      return u << k;
+    }
+    // That was the "Euclidean" part of the algorithm; now let's turn
+    // to the "binary" part. Since $0<v<u$ and $u$ is odd, either $v$
+    // or $u-v$ is a positive even integer less than $u$. Now observe
+    // that $\gcd(u,u-v)=\gcd(u,(u-v)\bmod u)=\gcd(u,v)$. Therefore
+    // we can always replace $v$ by an even integer in $(0,u)$ that
+    // has the same gcd with $u$.
+    if v % 2 == 1 {
+      v = u - v;
+    }
+    // At this point $u$ is odd and $v$ is even. If $k_v$ denotes the
+    // dyadic valuation of $v$, then $\gcd(u,v)=2^{k_v}\gcd(u,v/2^{k_v})$.
+    // Note that this step makes $v$ odd and preserves the inequality
+    // $0<v\le u$.
+    v >>= v.trailing_zeros();
+  }
 }
 
 #[must_use]
 pub fn binary_brent_kung(mut u: u64, mut v: u64) -> u64 {
+  if u == 0 {
+    return v;
+  }
+  if v == 0 {
+    return u;
+  }
   // It can be shown that this loop runs for $\le 2+2\lg\max(u,v)$ iterations.
+
   todo!()
 }
 
@@ -207,43 +281,54 @@ pub fn binary_brent_kung(mut u: u64, mut v: u64) -> u64 {
 mod tests {
   use super::*;
 
-  #[test]
-  fn gcd() {
-    let test_pairs = [
-      ((0, 0), 0),
-      ((0, 1), 1),
-      ((0, u64::MAX), u64::MAX),
-      ((1, 2), 1),
-      ((1, 5), 1),
-      ((1, u64::MAX), 1),
-      ((2, 4), 2),
-      ((3, 8), 1),
-      ((4, 8), 4),
-      ((12, 54), 6),
-      ((30, 70), 10),
-      ((76, 95), 19),
-      ((64, 128), 64),
-      ((119, 544), 17),
-      ((233, 377), 1),
-      ((610, 2584), 2),
-      ((512, 1024), 512),
-      ((1989, 3003), 39),
-      ((2166, 6099), 57),
-      ((5046, 8004), 174),
-      ((1 << 11, 1 << 13), 1 << 11),
-    ];
-    const METHODS: [fn(u64, u64) -> u64; 3] = [euclid, binary_stein, binary_brent];
-    for ((u, v), expected) in test_pairs {
+  fn test_methods<I>(cases: I)
+  where
+    I: Iterator<Item = ((u64, u64), u64)>,
+  {
+    const METHODS: [fn(u64, u64) -> u64; 4] = [euclid, binary_stein, binary_brent, harris];
+    for ((u, v), expected) in cases {
       for method in METHODS {
         assert_eq!(method(u, v), expected);
-        assert_eq!(method(v, u), expected);
       }
     }
   }
 
   #[test]
-  fn check_binary() {
-    let gcd = binary_stein(40902, 24140);
-    println!("gcd={gcd}");
+  fn small_numbers() {
+    test_methods(
+      [
+        ((0, 0), 0),
+        ((0, 1), 1),
+        ((0, u64::MAX), u64::MAX),
+        ((1, 2), 1),
+        ((1, 5), 1),
+        ((1, u64::MAX), 1),
+        ((2, 4), 2),
+        ((3, 8), 1),
+        ((4, 8), 4),
+        ((12, 54), 6),
+        ((30, 70), 10),
+        ((76, 95), 19),
+        ((64, 128), 64),
+        ((119, 544), 17),
+        ((233, 377), 1),
+        ((610, 2584), 2),
+        ((512, 1024), 512),
+        ((1989, 3003), 39),
+        ((2166, 6099), 57),
+        ((5046, 8004), 174),
+        ((1 << 11, 1 << 13), 1 << 11),
+      ]
+      .into_iter(),
+    );
+  }
+
+  #[test]
+  fn random_pairs() {
+    let pairs = [];
+    test_methods(pairs.into_iter().map(|(u, v)| {
+      let gcd = euclid(u, v);
+      ((u, v), gcd)
+    }));
   }
 }
