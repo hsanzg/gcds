@@ -90,12 +90,11 @@ pub fn binary_stein(mut u: u64, mut v: u64) -> u64 {
   // that $\gcd(u,v)=2^k\gcd(u/2^{k_u},v/2^{k_v})$, whenever $u$
   // is a multiple of $2^{k_u}$, $v$ is a multiple of $2^{k_v}$,
   // and $k=\min(k_u,k_v)$.
-  let (k_u, k_v) = (u.trailing_zeros(), v.trailing_zeros());
+  let k = (u | v).trailing_zeros();
   // SAFETY: Since $u$ and $v$ are nonzero, $k_u$ and $k_v$ are
   //         less than `u64::BITS`.
-  u >>= k_u;
-  v >>= k_v;
-  let k = k_u.min(k_v);
+  u >>= u.trailing_zeros();
+  v >>= v.trailing_zeros();
   loop {
     // At the beginning of each iteration of this loop, we have
     // the invariant condition that both $u$ and $v$ are odd.
@@ -159,15 +158,12 @@ pub fn binary_brent(mut u: u64, mut v: u64) -> u64 {
   // $u$ and $v$, respectively, and $k=\min(k_u,k_v)$. (The integers
   // $k_u$ and $k_v$ are sometimes known as the _dyadic valuations_
   // of $u$ and $v$, respectively.)
-  let (k_u, k_v) = (u.trailing_zeros(), v.trailing_zeros());
+  let k = (u | v).trailing_zeros();
   // SAFETY: Since $u$ and $v$ are nonzero, $k_u$ and $k_v$ are
   //         less than `u64::BITS`.
-  u >>= k_u;
-  v >>= k_v;
-  let k = k_u.min(k_v);
+  u >>= u.trailing_zeros();
+  v >>= v.trailing_zeros();
   // Ensure that $u\le v$ on entry to R. P. Brent's Algorithm V.
-  // todo: check if moving this swap before the trailing zero computation
-  //  results in a measurable speedup.
   if u > v {
     (u, v) = (v, u);
   }
@@ -230,10 +226,9 @@ pub fn harris(mut u: u64, mut v: u64) -> u64 {
   // Apply the familiar identity $\gcd(u,v)=2^k\gcd(u/2^{k_u},v/2^{k_v})$,
   // where $k_u$ and $k_v$ are the dyadic valuations of $u$ and $v$,
   // and $k=\min(k_u,k_v)$. After this step, $u$ and $v$ become odd.
-  let (k_u, k_v) = (u.trailing_zeros(), v.trailing_zeros());
-  u >>= k_u;
-  v >>= k_v;
-  let k = k_u.min(k_v);
+  let k = (u | v).trailing_zeros();
+  u >>= u.trailing_zeros();
+  v >>= v.trailing_zeros();
   // This scheme also requires that $0<v\le u$ upon entry to the main
   // loop. Obviously $\gcd(u,v)=\gcd(v,u)$.
   if u < v {
