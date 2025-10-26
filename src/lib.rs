@@ -327,8 +327,13 @@ mod tests {
 
   #[test]
   fn random_pairs() {
-    let pairs = [];
-    test_methods(pairs.into_iter().map(|(u, v)| {
+    use rand::prelude::*;
+    let rng = SmallRng::seed_from_u64(2025);
+    let pairs = rng
+      .random_iter::<u128>()
+      .take(10_000_000)
+      .map(|x| (x as u64, (x >> u64::BITS) as u64));
+    test_methods(pairs.map(|(u, v)| {
       let gcd = euclid(u, v);
       ((u, v), gcd)
     }));

@@ -13,6 +13,14 @@ edition = "2024"
 
 [dependencies]
 
+[dev-dependencies]
+criterion = "0.7"
+rand = "0.9"
+
+[[bench]]
+name = "benchmarks"
+harness = false # `criterion` provides its own benchmark harness.
+
 # Taken from https://docs.rs/rustdoc-katex-demo/latest/rustdoc_katex_demo/
 # To build locally, run `RUSTDOCFLAGS="--html-in-header misc/katex-header.html" cargo doc --no-deps`.
 [package.metadata.docs.rs]
