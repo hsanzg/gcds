@@ -1,5 +1,5 @@
 use criterion::{BatchSize, Bencher, BenchmarkId, Criterion, criterion_group, criterion_main};
-use gcd::{binary_brent, binary_stein, euclid, harris};
+use gcd::*;
 use rand::distr::Uniform;
 use rand::prelude::*;
 use std::hint::black_box;
@@ -27,15 +27,13 @@ fn bench_gcds(c: &mut Criterion) {
   let gcd_fns: [(&str, GcdFn); _] = [
     ("euclid", euclid),
     ("binary_stein", binary_stein),
-    ("binary_stein2", binary_stein2),
-    ("binary_lemire", binary_lemire),
+    ("binary_bonzini", binary_bonzini),
     ("binary_brent", binary_brent),
     ("harris", harris),
   ];
   // Test the gcd subroutines on pairs of integers that are uniformly
   // distributed in intervals of the form $[2^x,2^y)$, with $x<y$.
-  //let bit_len_ranges = [0..u64::BITS, 0..10];
-  let bit_len_ranges = [0..u64::BITS - 1];
+  let bit_len_ranges = [0..u64::BITS, 0..10];
   for bit_len in bit_len_ranges {
     let min_input = 1 << bit_len.start; // $2^x$.
     let max_input = u64::MAX >> (u64::BITS - bit_len.end); // $2^y-1$.
@@ -49,51 +47,6 @@ fn bench_gcds(c: &mut Criterion) {
           bench_gcd(b, fn_, input_distrib);
         },
       );
-    }
-  }
-}
-
-fn binary_lemire(u: u64, v: u64) -> u64 {
-  let mut u = u as i64;
-  let mut v = v as i64;
-  if u == 0 {
-    return v.unsigned_abs();
-  }
-  if v == 0 {
-    return u.unsigned_abs();
-  }
-  let (mut k_u, k_v) = (u.trailing_zeros(), v.trailing_zeros());
-  v >>= k_v;
-  let k = k_u.min(k_v);
-  loop {
-    u >>= k_u;
-    let diff = v - u;
-    k_u = diff.trailing_zeros();
-    v = u.min(v);
-    u = diff.abs();
-    if u == 0 {
-      return (v << k) as u64;
-    }
-  }
-}
-
-pub fn binary_stein2(mut u: u64, mut v: u64) -> u64 {
-  if u == 0 {
-    return v;
-  }
-  if v == 0 {
-    return u;
-  }
-  let k = (u | v).trailing_zeros();
-  u >>= u.trailing_zeros();
-  loop {
-    v >>= v.trailing_zeros();
-    if u > v {
-      (u, v) = (v, u);
-    }
-    v -= u;
-    if v == 0 {
-      return u << k;
     }
   }
 }
