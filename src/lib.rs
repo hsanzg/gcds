@@ -116,6 +116,81 @@ pub fn binary_stein(mut u: u64, mut v: u64) -> u64 {
   }
 }
 
+/// Computes the greatest common divisor of $u$ and $v$ using an optimized
+/// variant of the [binary gcd algorithm] proposed by P. Bonzini, and studied
+/// by D. Lemire [["Greatest common divisor, the extended Euclidean algorithm, and speed!"][lemire]
+/// (April 2024)].
+///
+/// # Examples
+/// ```
+/// use gcd::binary_bonzini;
+///
+/// assert_eq!(binary_bonzini(0, 0), 0);
+/// assert_eq!(binary_bonzini(2, 0), 2);
+/// assert_eq!(binary_bonzini(1, 1), 1);
+/// assert_eq!(binary_bonzini(1, 4), 1);
+/// assert_eq!(binary_bonzini(792, 252), 36);
+/// assert_eq!(binary_bonzini(954, 5883), 159);
+/// assert_eq!(binary_bonzini(14003, 63194), 19);
+/// assert_eq!(binary_bonzini(u64::MAX, u64::MAX - 1), 1);
+/// assert_eq!(binary_bonzini(u64::MAX, u64::MAX), u64::MAX);
+///
+/// // Find the gcd of two signed numbers.
+/// assert_eq!(binary_bonzini((-8i64).unsigned_abs(), 76), 4);
+/// ```
+///
+/// [binary gcd algorithm]: binary_stein
+/// [lemire]: https://lemire.me/blog/2024/04/13/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
+pub fn binary_bonzini(mut u: u64, mut v: u64) -> u64 {
+  if u == 0 {
+    return v;
+  }
+  if v == 0 {
+    return u;
+  }
+  // As in the original binary gcd algorithm, we begin by applying the
+  // formula $\gcd(u,v)=2^k\gcd(u/2^{k_u},v/2^{k_v})$, where $2^{k_u}$
+  // and $2^{k_v}$ are the largest powers of 2 dividing $u$ and $v$,
+  // respectively, and $k=\min(k_u,k_v)$. The only difference is that
+  // the assignment "$v\gets v/2^{k_v}$" appears within the main loop,
+  // consolidated with the same operation appearing at the end of the
+  // original version of the loop.
+  let (k_u, mut k_v) = (u.trailing_zeros(), v.trailing_zeros());
+  u >>= k_u;
+  let k = k_u.min(k_v);
+  loop {
+    v >>= k_v;
+    // In essence, the updating rule of the binary gcd algorithm is
+    // $(u,v)\gets(\min(u,v),|u-v|)$. (As we have already observed,
+    // this transformation leaves $\gcd(u,v)$ unchanged.) Perhaps
+    // the most obvious way to find the new value of $v$ is to use
+    // `u.abs_diff(v)` or the equivalent sequence of operations in
+    // `binary_stein`. Here we start by computing $u-v$ instead.
+    let (diff, neg_diff) = u.overflowing_sub(v);
+    // In the first place, the termination condition ``$|u-v|=0$''
+    // of the original algorithm holds if and only if $u-v=0$. The
+    // latter quantity is faster to compute on most architectures.
+    if diff == 0 {
+      return u << k;
+    }
+    // In the second place, $|u-v|$ and $u-v$ have the same dyadic
+    // valuation $k_v$ (equivalently, the greatest power of $2$
+    // that divides each of them is the same, $2^{k_v}$). So we
+    // can compute $k_v$ directly from $u-v$, without having to
+    // wait for the result of $|u-v|$ to become available.
+    k_v = diff.trailing_zeros();
+    u = u.min(v);
+    // Actually compute $|u-v|$ from `diff` and `neg_diff`. Note
+    // that a smart compiler will lower the required conditional
+    // branch to a `cmov` instruction on x86 and a `cneg` on ARM,
+    // much like what it would produce for `u.abs_diff(v)`.
+    v = if neg_diff { diff.wrapping_neg() } else { diff };
+    // After this operation, we recover the invariant condition that
+    // $u$ is odd and $v$ is even. The next iteration will reduce $v$
+    // by applying the identity $\gcd(u,v)=2^{k_v}\gcd(u,v/2^{k_v})$.
+  }
+}
+
 /// Computes the greatest common divisor of $u$ and $v$ using an alternative
 /// formulation of the binary gcd algorithm proposed by R. P. Brent
 /// [[_"Further analysis of the Binary Euclidean algorithm,"_][brent]
@@ -282,10 +357,11 @@ mod tests {
   where
     I: Iterator<Item = ((u64, u64), u64)>,
   {
-    const METHODS: [fn(u64, u64) -> u64; 4] = [euclid, binary_stein, binary_brent, harris];
+    const METHODS: [fn(u64, u64) -> u64; 5] =
+      [euclid, binary_stein, binary_bonzini, binary_brent, harris];
     for ((u, v), expected) in cases {
       for method in METHODS {
-        assert_eq!(method(u, v), expected);
+        assert_eq!(method(u, v), expected, "gcd({u}, {v})={expected}");
       }
     }
   }
