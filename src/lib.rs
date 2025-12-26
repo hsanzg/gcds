@@ -8,7 +8,7 @@
 //! This definition does not apply when $u$ and $v$ are both zero, since
 //! every number divides zero; for convenience, all the algorithms adhere
 //! to the convention that $\gcd(0,0)=0$.
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 
 /// Computes the greatest common divisor of $u$ and $v$ using the modern
 /// version of the Euclidean algorithm, as described in Algorithm 4.5.2A
