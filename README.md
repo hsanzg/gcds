@@ -11,7 +11,9 @@ common divisor of two single-precision numbers.
 
 The _greatest common divisor_ $\gcd(u,v)$ of two integers $u$ and $v$,
 not both zero, is the largest integer that evenly divides them both.
-(By convention we let $\gcd(0,0)=0$.)
+This definition does not apply when $u$ and $v$ are both zero, since
+every number divides zero; for convenience, all the algorithms adhere
+to the convention that $\gcd(0,0)=0$.
 
 <!-- cargo-sync-readme end -->
 
