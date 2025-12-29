@@ -1,30 +1,37 @@
-use criterion::{BatchSize, Bencher, BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main};
 use gcd::*;
 use rand::distr::Uniform;
 use rand::prelude::*;
+use std::fmt::Debug;
 use std::hint::black_box;
 
-type GcdFn = fn(u64, u64) -> u64;
+type GcdFn<I> = fn(I, I) -> u64;
 
-/// Estimates the running time of a gcd subroutine on random pairs of
-/// integers having the given probability distribution.
-fn bench_gcd<D>(b: &mut Bencher, gcd: GcdFn, input_distr: &D)
+/// Estimates the running time of a gcd subroutine on random pairs
+/// of integers having the given probability distribution.
+fn bench_gcd<I, D>(c: &mut Criterion, name: &str, gcd: GcdFn<I>, input_distr: &D)
 where
-  D: Distribution<u64>,
+  D: Distribution<I> + Debug,
 {
-  // Initialize a pseudorandom number generator with a constant seed
-  // value, in order to pass exactly the same inputs to all the gcd
-  // routines.
-  let mut rng = SmallRng::seed_from_u64(2025);
-  b.iter_batched(
-    || (input_distr.sample(&mut rng), input_distr.sample(&mut rng)),
-    |(u, v)| gcd(u, v),
-    BatchSize::SmallInput,
+  c.bench_with_input(
+    BenchmarkId::new(name, format!("{input_distr:?}")),
+    &input_distr,
+    |b, _| {
+      // Initialize a pseudorandom number generator with a constant seed
+      // value, in order to pass exactly the same inputs to all the gcd
+      // routines.
+      let mut rng = SmallRng::seed_from_u64(2025);
+      b.iter_batched(
+        || (input_distr.sample(&mut rng), input_distr.sample(&mut rng)),
+        |(u, v)| gcd(u, v),
+        BatchSize::SmallInput,
+      );
+    },
   );
 }
 
-fn bench_gcds(c: &mut Criterion) {
-  let gcd_fns: [(&str, GcdFn); _] = [
+fn bench_unsigned_gcds(c: &mut Criterion) {
+  let fns: [(&str, GcdFn<u64>); _] = [
     ("euclid", euclid),
     ("binary_stein", binary_stein),
     ("binary_bonzini", binary_bonzini),
@@ -37,16 +44,24 @@ fn bench_gcds(c: &mut Criterion) {
   for bit_len in bit_len_ranges {
     let min_input = 1 << bit_len.start; // $2^x$.
     let max_input = u64::MAX >> (u64::BITS - bit_len.end); // $2^y-1$.
-    let input_distrib = Uniform::new_inclusive(min_input, max_input).unwrap();
+    let input_distr = Uniform::new_inclusive(min_input, max_input).unwrap();
+    for (fn_name, fn_) in fns {
+      bench_gcd(c, fn_name, fn_, &input_distr);
+    }
+  }
+}
 
-    for (fn_name, fn_) in gcd_fns {
-      c.bench_with_input(
-        BenchmarkId::new(fn_name, format!("{bit_len:?}")),
-        &input_distrib,
-        |b, input_distrib| {
-          bench_gcd(b, fn_, input_distrib);
-        },
-      );
+fn bench_signed_gcds(c: &mut Criterion) {
+  let fns: [(&str, GcdFn<i64>); _] = [("binary_brent_kung", binary_brent_kung)];
+  // Test the signed gcd subroutines on pairs of integers that are
+  // uniformly distributed in intervals of the form $[-2^x,2^x)$.
+  let bit_lens = [i64::BITS - 1, 10];
+  for bit_len in bit_lens {
+    let max_input = (u64::MAX >> (u64::BITS - bit_len)) as i64; // $2^x-1$.
+    let min_input = -max_input - 1; // $-2^x$.
+    let input_distr = Uniform::new_inclusive(min_input, max_input).unwrap();
+    for (fn_name, fn_) in fns {
+      bench_gcd(c, fn_name, fn_, &input_distr);
     }
   }
 }
@@ -77,5 +92,10 @@ fn bench_even_even_reduction(c: &mut Criterion) {
   });
 }
 
-criterion_group!(benches, bench_gcds, bench_even_even_reduction);
+criterion_group!(
+  benches,
+  bench_unsigned_gcds,
+  bench_signed_gcds,
+  bench_even_even_reduction
+);
 criterion_main!(benches);

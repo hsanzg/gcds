@@ -336,68 +336,82 @@ pub fn harris(mut u: u64, mut v: u64) -> u64 {
   }
 }
 
-#[must_use]
-pub fn binary_brent_kung(mut u: u64, mut v: u64) -> u64 {
-  if u == 0 {
-    return v;
-  }
-  if v == 0 {
-    return u;
-  }
-  // It can be shown that this loop runs for $\le 2+2\lg\max(u,v)$ iterations.
-
-  todo!()
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
 
   fn test_methods<I>(cases: I)
   where
-    I: Iterator<Item = ((u64, u64), u64)>,
+    I: IntoIterator<Item = ((u64, u64), u64)>,
   {
-    const METHODS: [fn(u64, u64) -> u64; 5] =
+    let unsigned_methods: [fn(u64, u64) -> u64; _] =
       [euclid, binary_stein, binary_bonzini, binary_brent, harris];
+    let signed_methods: [fn(i64, i64) -> u64; _] = [binary_brent_kung];
     for ((u, v), expected) in cases {
-      for method in METHODS {
-        assert_eq!(method(u, v), expected, "gcd({u}, {v})={expected}");
+      for method in unsigned_methods {
+        assert_eq!(method(u, v), expected, "gcd({u}, {v})");
+      }
+      let Ok(u) = u.try_into() else { continue };
+      let Ok(v) = v.try_into() else { continue };
+      for method in signed_methods {
+        assert_eq!(method(u, v), expected, "gcd({u}, {v})");
       }
     }
   }
 
   #[test]
   fn small_numbers() {
-    test_methods(
-      [
-        ((0, 0), 0),
-        ((0, 1), 1),
-        ((0, u64::MAX), u64::MAX),
-        ((1, 2), 1),
-        ((1, 5), 1),
-        ((1, u64::MAX), 1),
-        ((2, 4), 2),
-        ((3, 8), 1),
-        ((4, 8), 4),
-        ((12, 54), 6),
-        ((30, 70), 10),
-        ((76, 95), 19),
-        ((64, 128), 64),
-        ((119, 544), 17),
-        ((233, 377), 1),
-        ((610, 2584), 2),
-        ((512, 1024), 512),
-        ((1989, 3003), 39),
-        ((2166, 6099), 57),
-        ((5046, 8004), 174),
-        ((1 << 11, 1 << 13), 1 << 11),
-      ]
-      .into_iter(),
-    );
+    test_methods([
+      ((0, 0), 0),
+      ((0, 1), 1),
+      ((1, 2), 1),
+      ((1, 5), 1),
+      ((2, 4), 2),
+      ((3, 8), 1),
+      ((4, 8), 4),
+      ((12, 54), 6),
+      ((30, 70), 10),
+      ((76, 95), 19),
+      ((64, 128), 64),
+      ((119, 544), 17),
+      ((233, 377), 1),
+      ((610, 2584), 2),
+      ((512, 1024), 512),
+      ((1989, 3003), 39),
+      ((2166, 6099), 57),
+      ((5046, 8004), 174),
+      ((1 << 11, 1 << 13), 1 << 11),
+    ]);
   }
 
   #[test]
-  fn random_pairs() {
+  fn mersenne_numbers() {
+    // Use the fact that $\gcd(2^u-1,2^v-1)=2^{\gcd(u,v)}-1$
+    // for nonnegative integers $u$ and $v$.
+    let exps = 0..u64::BITS;
+    test_methods(exps.clone().zip(exps).map(|(u, v)| {
+      let gcd_u_v = euclid(u as u64, v as u64);
+      (((1 << u) - 1, (1 << v) - 1), (1 << gcd_u_v) - 1)
+    }));
+  }
+
+  #[test]
+  fn extreme_cases() {
+    const MAX_SIGNED: u64 = i64::MAX as u64;
+    test_methods([
+      ((0, MAX_SIGNED), MAX_SIGNED),
+      ((0, u64::MAX), u64::MAX),
+      ((1, MAX_SIGNED), 1),
+      ((1, u64::MAX), 1),
+      ((MAX_SIGNED, MAX_SIGNED - 2), 1),
+      ((u64::MAX, u64::MAX - 2), 1),
+      ((MAX_SIGNED, MAX_SIGNED), MAX_SIGNED),
+      ((u64::MAX, u64::MAX), u64::MAX),
+    ]);
+  }
+
+  #[test]
+  fn random_nonnegative_pairs() {
     use rand::prelude::*;
     let rng = SmallRng::seed_from_u64(2025);
     let pairs = rng
