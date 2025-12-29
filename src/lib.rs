@@ -8,7 +8,7 @@
 //! This definition does not apply when $u$ and $v$ are both zero, since
 //! every number divides zero; for convenience, all the algorithms adhere
 //! to the convention that $\gcd(0,0)=0$.
-#![no_std]
+// #![no_std]
 
 /// Computes the greatest common divisor of $u$ and $v$ using the modern
 /// version of the Euclidean algorithm, as described in Algorithm 4.5.2A
@@ -259,6 +259,150 @@ pub fn binary_brent(mut u: u64, mut v: u64) -> u64 {
   }
   // We have $\gcd(u,v)=u$; terminate with $u\cdot2^k$.
   u << k
+}
+
+/// Computes the greatest common divisor of $u$ and $v$ using the systolic
+/// variant of the binary gcd algorithm by R. P. Brent and H. T. Kung [_IEEE
+/// Symposium on Computer Arithmetic_ **7** (1985), [118--125][systolic]].
+///
+/// Exercise 4.5.2.40 of _TAOCP_ studies the worst-case running time of
+/// this method.
+///
+/// # Examples
+/// ```
+/// use gcd::binary_brent_kung;
+///
+/// assert_eq!(binary_brent_kung(0, 0), 0);
+/// assert_eq!(binary_brent_kung(-3, 0), 3);
+/// assert_eq!(binary_brent_kung(1, 1), 1);
+/// assert_eq!(binary_brent_kung(1, -6), 1);
+/// assert_eq!(binary_brent_kung(-45, -63), 9);
+/// assert_eq!(binary_brent_kung(4899, 690), 69);
+/// assert_eq!(binary_brent_kung(-4515, 9765), 105);
+/// assert_eq!(binary_brent_kung(75850, 20213), 41);
+/// assert_eq!(binary_brent_kung(i64::MAX - 1, i64::MAX), 1);
+/// assert_eq!(binary_brent_kung(i64::MAX, i64::MAX), i64::MAX as u64);
+/// assert_eq!(binary_brent_kung(i64::MAX, -i64::MAX), i64::MAX as u64);
+/// ```
+///
+/// [systolic]: https://maths-people.anu.edu.au/brent/pd/rpb077i.pdf
+#[must_use]
+pub fn binary_brent_kung(mut u: i64, mut v: i64) -> u64 {
+  if u == 0 {
+    return v.unsigned_abs();
+  }
+  // This variant of the binary gcd algorithm avoids the need to test
+  // the sign of $u-v$ by maintaining (loose) upper bounds $|u|\le2^p$
+  // and $|v|\le2^q$, and replacing the test ``$u>v$'' by the weaker
+  // ``$p>q$.'' The important thing is that if $u$ and $v$ are $n$-bit
+  // numbers, then $p$ and $q$ fit in at most $\floor{\lg n}+1$ bits.
+  // Thus it is easier to test the sign of $p-q$ than of $u-v$. Also,
+  // since no other step of the algorithm involves the variables $p$
+  // and $q$, we can work directly with their difference. R. Brent and
+  // H. T. Kung exploited these ideas to implement the new algorithm
+  // on a _systolic array_, a collection of primitive data processing
+  // units that work in parallel and communicate with their neighbors.
+
+  // It should be noted that the original binary algorithm performs
+  // at most $n+1$ iterations of its main loop (see exercise 4.5.2.37
+  // of _TAOCP_), whereas its systolic counterpart might need up to
+  // $2n+2$ (see exercise 4.5.2.40). Thus there is a tradeoff between
+  // the number of iterations and their individual speed. (Of course
+  // this tradeoff applies only when the test ``$p>q$'' is performed
+  // efficiently; since the present routine operates on full computer
+  // words, it is actually significantly slower than `binary_stein`.
+  // We will content ourselves with this unoptimized implementation,
+  // because it illustrates the salient features of the systolic
+  // algorithm and the properties of the $\gcd$ function that it
+  // relies on.)
+
+  // Ensure that $u$ is odd by using the by-now-familiar identity
+  // $\gcd(u,v)=2^k\gcd(u/2^k_u,v/2^k_v)$, where $k_u$ and $k_v$
+  // are the dyadic valuations of $u$ and $v$, and $k=\min(k_u,k_v)$.
+  // Unlike the other gcd methods, this routine accepts _signed_
+  // integers as input. Rust works with two's complement notation,
+  // so `x.trailing_zeros()` gives the value of $k_x$ whenever $x$
+  // is a nonzero integer; the case $x=v=0$ is handled below.
+  let (k_u, mut k_v) = (u.trailing_zeros(), v.trailing_zeros());
+  u >>= k_u;
+  let k = k_u.min(k_v);
+
+  // Variable $d$ stores the difference between the upper bounds $p$
+  // and $q$ on $\lg|u|$ and $\lg|v|$, respectively. We have $p=q=n$
+  // upon entry to the algorithm, and $p=n-k_u$ after dividing $u$ by
+  // $2^{k_u}$. If $u$ and $v$ are expected to have wildly different
+  // orders of magnitude, it is advantageous to initialize $d$ with
+  // the exact difference $\ceil{\lg|u|}-\ceil{\lg|v|}$, but that
+  // expression is more difficult to evaluate on a systolic array.
+  let mut d = -(k_u as i32);
+  while v != 0 {
+    // Each iteration of this loop begins with $u$ odd and $v$ even.
+    v >>= k_v;
+    d += k_v as i32;
+    // Swap $u\leftrightarrow v$ if the bound on $|u|$ is larger
+    // than the bound on $|v|$.
+    if d > 0 {
+      (u, v) = (v, u);
+      d = -d;
+    }
+    // At this point we know that both $u$ and $v$ are odd, and that
+    // $|u|$ is likely but not necessarily $\le|v|$. Unfortunately
+    // the latter condition is not strong enough to guarantee that
+    // setting $v\gets v-u$ (as in the original binary algorithm)
+    // will make the algorithm converge. Consider what happens if
+    // $u=-1$ and $v=1$, for example. Instead, we may replace $v$
+    // by either $w=(u+v)/2$ or $z=(u-v)/2$, depending on which
+    // one is even. (Note that $w$ and $z$ have different parity,
+    // because $z=w-v$ and $v$ is odd.) It is easy to see that
+    // $\gcd(u,v)=\gcd(u,w)=\gcd(u,z)$: any (odd) common divisor
+    // of $u$ and $v$ is a divisor of both $u+v$ and $u-v$, and
+    // thus of $w$ and $z$.
+
+    // One potential solution is to set $v\gets|v-u|$, but
+    // that difficults pipelining in a systolic array due to
+    // the conditional.
+
+    // ; conversely, any (odd) common divisor of $u$ and $w$ (or
+    // $z$) must divide both $u$ and $v$.
+
+    // v\gets|v-u|$, but that operation is difficult to implement
+    // on a systolic array, due to the absolute value.
+
+    // To prove convergence, observe that $w$ and $z$ are both
+    // at most $(2^p+2^q)/2$ in absolute value by the triangle
+    // inequality, which is itself at most $2^q$ thanks to the
+    // difference $d\le0$ and so $p\le q$; and the first step
+    // in this loop decreases $q$ at every iteration except
+    // perhaps the first.
+
+    // Of course, $gcd(u,v)=\gcd(u,w_+)=\gcd(u,w_-)$;
+    // notice that (i) any (odd) common divisor of $u$ and $v$ divides
+    // $u+v$, and since $u$ and $v$ are both odd, that divisor
+    // cannot be 2; and (ii) any common divisor of $u$ and
+    // $w_+$ is also a divisor of $v$, because $v=2w_+-u$.
+
+    // todo: use better variable names: $w$ and $z$.
+    // todo: define $w_+=(u+v)/2$ and $w_-=(u-v)/2$.
+
+    // todo: is it true that the chosen one is smaller than
+    //  u and v in absolute value?
+
+    // Compute the midpoint $\floor{(u+v)/2}$ of $u$ and $v$
+    // using the popular formula from Hackers' Delight.
+
+    // The typical way to compute the midpoint $\floor{(u+v)/2}$
+    // of $u$ and $v$ is to express it as $(u\&v)+((u\oplus v)\gg1)$.
+    // todo: Replace by `u.midpoint(v)` once the Rust standard library improves its implementation for `i64`.
+    let w = (u & v) + ((u ^ v) >> 1);
+    if w % 2 == 0 {
+      v = w; // $(u+v)/2$.
+    } else {
+      v = w - v; // $(u-v)/2$.
+    }
+    k_v = v.trailing_zeros();
+  }
+  // Now $v=0$, so the algorithm terminates with $|u|2^k$.
+  u.unsigned_abs() << k
 }
 
 /// Computes the greatest common divisor of $u$ and $v$ using a cross
