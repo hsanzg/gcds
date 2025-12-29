@@ -2,20 +2,12 @@ import math
 import random
 random.seed(2025)
 
-u_start, u_end, v_start, v_end = 50000, 70000, 18000, 30000
-u_start, u_end, v_start, v_end = 5000, 5100, 8000, 9000
-u_start, u_end, v_start, v_end = 28, 40, 65, 75
-u_start, u_end, v_start, v_end = 300, 310, 5000, 5100
-u_start, u_end, v_start, v_end = 7600, 7700, 3400, 3490
-u_start, u_end, v_start, v_end = 30000, 35000, 18000, 30000
-#u_start, u_end, v_start, v_end = 110, 130, 550, 555
-
-u_digits, v_digits = 1, 2
+u_digits, v_digits = 2, 2
 u_start, v_start = 10 ** (u_digits - 1), 10 ** (v_digits - 1)
 u_end, v_end = u_start * 10, v_start * 10
 
-good_threshold = .45 # relative to `min(u,v)`.
-too_good_threshold = .7 # exclusive.
+good_threshold = .1 # relative to `min(u,v)`.
+too_good_threshold = .3 # exclusive.
 #good_threshold, too_good_threshold = .5, .99
 limit = 100 # how many to print.
 mode = 'random' # or 'exhaustive'.
