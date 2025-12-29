@@ -155,9 +155,9 @@ pub fn binary_bonzini(mut u: u64, mut v: u64) -> u64 {
   // the assignment "$v\gets v/2^{k_v}$" appears within the main loop,
   // consolidated with the same operation appearing at the end of the
   // original version of the loop.
-  let (k_u, mut k_v) = (u.trailing_zeros(), v.trailing_zeros());
-  u >>= k_u;
-  let k = k_u.min(k_v);
+  let k = (u | v).trailing_zeros();
+  u >>= u.trailing_zeros();
+  let mut k_v = v.trailing_zeros();
   loop {
     v >>= k_v;
     // In essence, the updating rule of the binary gcd algorithm is
@@ -165,11 +165,11 @@ pub fn binary_bonzini(mut u: u64, mut v: u64) -> u64 {
     // this transformation leaves $\gcd(u,v)$ unchanged.) Perhaps
     // the most obvious way to find the new value of $v$ is to use
     // `u.abs_diff(v)` or the equivalent sequence of operations in
-    // `binary_stein`. Here we start by computing $u-v$ instead.
+    // `binary_stein`. Here we start by computing $u-v$ instead:
     let (diff, neg_diff) = u.overflowing_sub(v);
-    // In the first place, the termination condition ``$|u-v|=0$''
+    // Why? In the first place, the termination condition $|u-v|=0$
     // of the original algorithm holds if and only if $u-v=0$. The
-    // latter quantity is faster to compute on most architectures.
+    // latter quantity is easier to compute on most architectures.
     if diff == 0 {
       return u << k;
     }
@@ -232,7 +232,7 @@ pub fn binary_brent(mut u: u64, mut v: u64) -> u64 {
   // $2^{k_u}$ and $2^{k_v}$ are the greatest powers of 2 that divide
   // $u$ and $v$, respectively, and $k=\min(k_u,k_v)$. (The integers
   // $k_u$ and $k_v$ are sometimes known as the _dyadic valuations_
-  // of $u$ and $v$, respectively.)
+  // or the _ruler functions_ of $u$ and $v$, respectively.)
   let k = (u | v).trailing_zeros();
   // SAFETY: Since $u$ and $v$ are nonzero, $k_u$ and $k_v$ are
   //         less than `u64::BITS`.
