@@ -1,12 +1,12 @@
 [package]
-name = "gcd"
-version = "0.1.0"
+name = "gcds"
+version = "1.0.0"
 description = "Efficient implementations of gcd algorithms"
 authors = ["Hugo Sanz González <hugo@hgsg.me>"]
 license = "MIT"
-homepage = "https://github.com/hsang/gcd"
-repository = "https://github.com/hsang/gcd"
-keywords = ["gcd", "euclidean", "binary-gcd"]
+homepage = "https://github.com/hsang/gcds"
+repository = "https://github.com/hsang/gcds"
+keywords = ["gcd", "euclid", "binary", "stein", "brent"]
 categories = ["algorithms", "mathematics", "no-std"]
 readme = "README.md"
 edition = "2024"
@@ -14,7 +14,7 @@ edition = "2024"
 [dependencies]
 
 [dev-dependencies]
-criterion = "0.7"
+criterion = "0.8"
 rand = "0.9"
 
 [[bench]]
