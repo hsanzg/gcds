@@ -43,8 +43,8 @@ efficient methods that are currently known. Included, for example, are:
   proposed by V. C. Harris \[_The Fibonacci Quarterly_ **8** (1970),
   [102--103][harris]].
 
-Each subroutine is programmed in a [literate] style, and includes a short
-proof of correctness.
+Each subroutine is programmed in a somewhat [literate] style, and includes
+a short proof of correctness.
 
 ## License
 
@@ -56,4 +56,4 @@ proof of correctness.
 [brent]: https://maths-people.anu.edu.au/~brent/pd/rpb183tr.pdf
 [systolic]: https://maths-people.anu.edu.au/brent/pd/rpb077i.pdf
 [harris]: https://www.fq.math.ca/Scanned/8-1/harris1.pdf
-[lit]: http://www.literateprogramming.com/knuthweb.pdf
+[literate]: http://www.literateprogramming.com/knuthweb.pdf
