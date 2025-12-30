@@ -4,7 +4,6 @@ version = "1.0.0"
 description = "Efficient implementations of gcd algorithms"
 authors = ["Hugo Sanz González <hugo@hgsg.me>"]
 license = "MIT"
-homepage = "https://github.com/hsang/gcds"
 repository = "https://github.com/hsang/gcds"
 keywords = ["gcd", "euclid", "binary", "stein", "brent"]
 categories = ["algorithms", "mathematics", "no-std"]

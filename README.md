@@ -21,6 +21,39 @@ to the convention that $\gcd(0,0)=0$.
 
 <!-- cargo-sync-readme end -->
 
+This crate is by no means a complete catalog of gcd subroutines, but it
+does provide implementations of many of the most significant and most
+efficient methods that are currently known. Included, for example, are:
+
+- `euclid`: The modern version of the Euclidean algorithm, as described in
+  Algorithm 4.5.2A of [_The Art of Computer Programming_][taocp].
+- `binary_stein`: The binary gcd algorithm of J. Stein [["Computational Problems Associated with Racah Algebra,"][stein]
+  _J. Comp. Phys._ **1** (1967), 397--405].
+- `binary_bonzini`: an optimized variant of the binary gcd algorithm proposed
+  by P. Bonzini, and studied by D. Lemire [["Greatest common divisor, the extended Euclidean algorithm, and speed!"][lemire]
+  (April 2024)].
+- `binary_brent`: an alternative formulation of the binary gcd algorithm
+  proposed by R. P. Brent [[_"Further analysis of the Binary Euclidean algorithm,"_][brent]
+  Technical Report PRG TR-7--99 (Oxford Univ. Computing Laboratory, 1999),
+  Section 5].
+- `binary_brent_kung`: a variant of the binary gcd algorithm suitable for
+  implementation on a systolic array [R. P. Brent and H. T. Kung, _IEEE
+  Symposium on Computer Arithmetic_ **7** (1985), [118--125][systolic]].
+- `harris`: a cross between Euclid's algorithm and the binary gcd algorithm
+  proposed by V. C. Harris \[_The Fibonacci Quarterly_ **8** (1970),
+  [102--103][harris]].
+
+Each subroutine is programmed in a [literate] style, and includes a short
+proof of correctness.
+
 ## License
 
 [MIT](LICENSE) &copy; [Hugo Sanz González](https://hgsg.me)
+
+[taocp]: https://www-cs-faculty.stanford.edu/~knuth/taocp.html
+[stein]: https://doi.org/10.1016/0021-9991(67)90047-2
+[lemire]: https://lemire.me/blog/2024/04/13/greatest-common-divisor-the-extended-euclidean-algorithm-and-speed/
+[brent]: https://maths-people.anu.edu.au/~brent/pd/rpb183tr.pdf
+[systolic]: https://maths-people.anu.edu.au/brent/pd/rpb077i.pdf
+[harris]: https://www.fq.math.ca/Scanned/8-1/harris1.pdf
+[lit]: http://www.literateprogramming.com/knuthweb.pdf
