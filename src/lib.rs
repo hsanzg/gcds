@@ -8,7 +8,6 @@
 //! This definition does not apply when $u$ and $v$ are both zero, since
 //! every number divides zero; for convenience, all the algorithms adhere
 //! to the convention that $\gcd(0,0)=0$.
-// #![no_std]
 
 /// Computes the greatest common divisor of $u$ and $v$ using the modern
 /// version of the Euclidean algorithm, as described in Algorithm 4.5.2A
@@ -345,59 +344,37 @@ pub fn binary_brent_kung(mut u: i64, mut v: i64) -> u64 {
       (u, v) = (v, u);
       d = -d;
     }
-    // At this point we know that both $u$ and $v$ are odd, and that
-    // $|u|$ is likely but not necessarily $\le|v|$. Unfortunately
-    // the latter condition is not strong enough to guarantee that
-    // setting $v\gets v-u$ (as in the original binary algorithm)
-    // will make the algorithm converge. Consider what happens if
-    // $u=-1$ and $v=1$, for example. Instead, we may replace $v$
-    // by either $w=(u+v)/2$ or $z=(u-v)/2$, depending on which
-    // one is even. (Note that $w$ and $z$ have different parity,
-    // because $z=w-v$ and $v$ is odd.) It is easy to see that
-    // $\gcd(u,v)=\gcd(u,w)=\gcd(u,z)$: any (odd) common divisor
-    // of $u$ and $v$ is a divisor of both $u+v$ and $u-v$, and
-    // thus of $w$ and $z$.
+    // At this point both $u$ and $v$ are odd, and it is likely that
+    // $|u|\le|v|$. Unfortunately the latter condition is not strong
+    // enough to guarantee that setting $v\gets v-u$ now (as in the
+    // original binary algorithm) will make the algorithm converge.
+    // Consider what happens if $u=-1$ and $v=1$, for example. One
+    // solution suitable for use in a systolic array is to replace
+    // $v$ by whichever of $w=(u+v)/2$ or $z=(u-v)/2$ is even. (Note
+    // that $w$ and $z$ have different parity, because $z=w-v$ and
+    // $v$ is odd.) To show that $\gcd(u,v)=\gcd(u,w)=\gcd(u,z)$,
+    // observe that any (odd) common divisor of $u$ and $v$ is a
+    // divisor of both $u+v$ and $u-v$, and hence of $w$ and $z$;
+    // conversely, any common divisor of $u$ and $w$ (or $u$ and
+    // $z$) is odd and must divide both $u$ and $v$. It remains to
+    // prove that the algorithm always terminates: By the triangle
+    // inequality and the fact that $d\le0$ (i.e., $p\le q$) after
+    // the previous step, $w$ and $z$ are at most $(2^p+2^q)/2\le2^q$
+    // in absolute value. The new value of $v$ is even, so the next
+    // iteration of this loop will decrease $q$ by at least 1; it
+    // follows by induction that $v$ eventually becomes zero.
 
-    // One potential solution is to set $v\gets|v-u|$, but
-    // that difficults pipelining in a systolic array due to
-    // the conditional.
-
-    // ; conversely, any (odd) common divisor of $u$ and $w$ (or
-    // $z$) must divide both $u$ and $v$.
-
-    // v\gets|v-u|$, but that operation is difficult to implement
-    // on a systolic array, due to the absolute value.
-
-    // To prove convergence, observe that $w$ and $z$ are both
-    // at most $(2^p+2^q)/2$ in absolute value by the triangle
-    // inequality, which is itself at most $2^q$ thanks to the
-    // difference $d\le0$ and so $p\le q$; and the first step
-    // in this loop decreases $q$ at every iteration except
-    // perhaps the first.
-
-    // Of course, $gcd(u,v)=\gcd(u,w_+)=\gcd(u,w_-)$;
-    // notice that (i) any (odd) common divisor of $u$ and $v$ divides
-    // $u+v$, and since $u$ and $v$ are both odd, that divisor
-    // cannot be 2; and (ii) any common divisor of $u$ and
-    // $w_+$ is also a divisor of $v$, because $v=2w_+-u$.
-
-    // todo: use better variable names: $w$ and $z$.
-    // todo: define $w_+=(u+v)/2$ and $w_-=(u-v)/2$.
-
-    // todo: is it true that the chosen one is smaller than
-    //  u and v in absolute value?
-
-    // Compute the midpoint $\floor{(u+v)/2}$ of $u$ and $v$
-    // using the popular formula from Hackers' Delight.
-
-    // The typical way to compute the midpoint $\floor{(u+v)/2}$
-    // of $u$ and $v$ is to express it as $(u\&v)+((u\oplus v)\gg1)$.
-    // todo: Replace by `u.midpoint(v)` once the Rust standard library improves its implementation for `i64`.
+    // Compute the average of $u$ and $v$ truncated towards zero,
+    // using a popular formula from the book _Hacker's Delight_ by
+    // H.~S.~Warren, Jr., 2nd edition (2012), Section 2.5. Since
+    // $u$ and $v$ are odd, the correction term $(w\gg63)\&(u\oplus v)$
+    // is zero; thus this is slightly faster than the built-in
+    // `i64::midpoint` method.
     let w = (u & v) + ((u ^ v) >> 1);
     if w % 2 == 0 {
-      v = w; // $(u+v)/2$.
+      v = w;
     } else {
-      v = w - v; // $(u-v)/2$.
+      v = w - v; // $z$.
     }
     k_v = v.trailing_zeros();
   }
