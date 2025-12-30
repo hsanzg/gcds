@@ -1,5 +1,5 @@
 use criterion::{BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main};
-use gcd::*;
+use gcds::*;
 use rand::distr::Uniform;
 use rand::prelude::*;
 use std::fmt::Debug;

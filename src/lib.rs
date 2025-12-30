@@ -1,5 +1,5 @@
 // The following doc comment is kept in sync with the `README.md` file.
-// Please run `cargo sync-readme` after modifying the comment contents.
+// Please run `cargo sync-readme` after modifying its contents.
 //! This crate implements several algorithms for finding the greatest
 //! common divisor of two single-precision numbers.
 //!
@@ -15,7 +15,7 @@
 ///
 /// # Examples
 /// ```
-/// use gcd::euclid;
+/// use gcds::euclid;
 ///
 /// assert_eq!(euclid(0, 0), 0);
 /// assert_eq!(euclid(2, 0), 2);
@@ -54,7 +54,7 @@ pub const fn euclid(mut u: u64, mut v: u64) -> u64 {
 ///
 /// # Examples
 /// ```
-/// use gcd::binary_stein;
+/// use gcds::binary_stein;
 ///
 /// assert_eq!(binary_stein(0, 0), 0);
 /// assert_eq!(binary_stein(0, 3), 3);
@@ -122,7 +122,7 @@ pub fn binary_stein(mut u: u64, mut v: u64) -> u64 {
 ///
 /// # Examples
 /// ```
-/// use gcd::binary_bonzini;
+/// use gcds::binary_bonzini;
 ///
 /// assert_eq!(binary_bonzini(0, 0), 0);
 /// assert_eq!(binary_bonzini(2, 0), 2);
@@ -198,7 +198,7 @@ pub fn binary_bonzini(mut u: u64, mut v: u64) -> u64 {
 ///
 /// # Examples
 /// ```
-/// use gcd::binary_brent;
+/// use gcds::binary_brent;
 ///
 /// assert_eq!(binary_brent(0, 0), 0);
 /// assert_eq!(binary_brent(0, 4), 4);
@@ -269,7 +269,7 @@ pub fn binary_brent(mut u: u64, mut v: u64) -> u64 {
 ///
 /// # Examples
 /// ```
-/// use gcd::binary_brent_kung;
+/// use gcds::binary_brent_kung;
 ///
 /// assert_eq!(binary_brent_kung(0, 0), 0);
 /// assert_eq!(binary_brent_kung(-3, 0), 3);
@@ -391,7 +391,7 @@ pub fn binary_brent_kung(mut u: i64, mut v: i64) -> u64 {
 ///
 /// # Examples
 /// ```
-/// use gcd::harris;
+/// use gcds::harris;
 ///
 /// assert_eq!(harris(0, 0), 0);
 /// assert_eq!(harris(0, 3), 3);
